@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>LIVE & HAUNT · Partner Portal</title>
+<style>
+:root{
+  --bg1:#021517; --bg2:#042022; --accent:#8fffee; --muted:#a6bfc0; --error:#ff4f4f;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; font-family:Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  background:radial-gradient(1200px 600px at 10% 10%, rgba(14,18,24,1), var(--bg1) 40%, var(--bg2) 100%);
+  color:#dfe7f3; display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
+}
+.card{
+  width:400px; max-width:95vw; padding:32px; border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border:1px solid rgba(255,255,255,0.04); box-shadow:0 18px 60px rgba(3,6,10,0.7);
+  position:relative; overflow:hidden; text-align:center;
+}
+.logo{color:var(--accent);font-weight:700;letter-spacing:1px; margin-bottom:6px;}
+h1{margin:6px 0 8px;font-size:20px;}
+p.lead{color:var(--muted);margin:0 0 18px;}
+.row{display:flex;gap:12px;align-items:center;}
+input[type="text"]{
+  flex:1;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);
+  background:rgba(255,255,255,0.015);color:inherit;font-size:15px;outline:none;
+  transition:box-shadow .18s ease;
+}
+input[type="text"]:focus{box-shadow:0 6px 22px rgba(0,0,0,0.6) inset}
+button{
+  padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);
+  background:transparent;color:var(--accent);cursor:pointer;font-weight:600;
+}
+.note{margin-top:12px;color:var(--muted);font-size:13px; text-align:left; min-height:40px;}
+.loader{height:8px;background:rgba(255,255,255,0.03);border-radius:6px;overflow:hidden;margin-top:12px;display:none;}
+.bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#c8fff9);border-radius:6px;animation:load 2s linear forwards;}
+@keyframes load{0%{width:0}100%{width:100%}}
+.cursor{display:inline-block;width:10px;height:18px;background:var(--accent);vertical-align:bottom;margin-left:6px;animation:blink 1s steps(2) infinite;}
+@keyframes blink{50%{opacity:0}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.typewriter{
+  width:400px; max-width:95vw; min-height:120px;
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:12px;
+  padding:14px;
+  background:rgba(0,20,20,0.3);
+  color:var(--accent);
+  font-family:ui-serif, Georgia, "Times New Roman", serif;
+  font-size:15px; line-height:1.5; white-space:pre-wrap;
+  overflow:hidden;
+}
+.blockedMessage{
+  font-family:ui-serif, Georgia, "Times New Roman", serif;
+  color:#ff4f4f; /* สีแดง */
+  font-size:18px;
+  font-weight:700;
+  text-align:center;
+  display:none;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo">LIVE & HAUNT · PARTNER PORTAL</div>
+  <h1>PRIVATE ACCESS — CONFIRM PASSCODE</h1>
+  <p class="lead">โปรดยืนยันรหัสเพื่อเข้าถึงระบบ</p>
+
+  <div class="row">
+    <input id="pass" type="text" placeholder="Enter passcode">
+    <button id="tryBtn">Confirm</button>
+  </div>
+
+  <div id="loader" class="loader"><div class="bar"></div></div>
+  <div id="msg" class="note">หมายเหตุ: หน้านี้ใช้เป็นพร็อพสำหรับนิยาย 'LIVE & HAUNT ถ้าไม่ตาย เจอกันคลิปถัดไป' เท่านั้น</div>
+</div>
+
+<div id="story" class="typewriter"></div>
+<div id="blocked" class="blockedMessage">คุณไม่ได้ถูกรับเชิญ</div>
+
+<script>
+const SECRET = "HAUNT";
+let attempt=0, blocked=false;
+const input=document.getElementById('pass');
+const msg=document.getElementById('msg');
+const loader=document.getElementById('loader');
+const story=document.getElementById('story');
+const blockedMsg=document.getElementById('blocked');
+const tryBtn=document.getElementById('tryBtn');
+const ctx = (()=>{try{return new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}})();
+
+function beep(freq,dur=0.15,vol=0.08,type="sine"){if(!ctx)return;const o=ctx.createOscillator();const g=ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.value=vol;o.connect(g);g.connect(ctx.destination);o.start();setTimeout(()=>o.stop(),dur*1000);}
+function failBeep(){[200,200,150].forEach((f,i)=>setTimeout(()=>beep(440-Math.random()*100,0.09,0.08,"sawtooth"),i*200));}
+function successBeep(){beep(880,0.16,0.14,"triangle");setTimeout(()=>beep(880*1.5,0.12,0.1,"sine"),160);}
+
+function typeWriter(target,text,speed=26){
+  target.textContent="";
+  let i=0;
+  const t=setInterval(()=>{
+    i++;
+    target.textContent=text.slice(0,i);
+    if(i>=text.length) clearInterval(t);
+  },speed);
+}
+
+function tryPass(){
+  if(blocked){
+    story.style.display='none';
+    blockedMsg.style.display='block';
+    msg.style.display='none';
+    failBeep();
+    return;
+  }
+  const val=input.value.trim();
+  if(!val){msg.textContent="กรุณากรอกรหัส"; msg.style.color="var(--muted)"; failBeep(); return;}
+  if(ctx&&ctx.state==='suspended')ctx.resume();
+
+  attempt++;
+  
+  if(val.toUpperCase()===SECRET.toUpperCase()){
+    loader.style.display='block';
+    msg.textContent="รหัสถูกต้อง... ระบบกำลังตรวจสอบสิทธิ์"; msg.style.color="var(--muted)";
+    successBeep();
+    setTimeout(()=>{
+      loader.style.display='none';
+      const storyText=`รหัสถูกต้อง...\nแต่รหัสนี้ไม่ได้มีไว้สำหรับคุณ\n\n"คุณไม่ใช่ผู้ถูกเชิญจากทางแพลตฟอร์ม"\n\nระบบเริ่มตอบสนองต่อผู้ไม่ใช่ผู้เข้าร่วม\nสิทธิ์ของคุณจะถูกจำกัดทันที\n\nรหัสข้อผิดพลาด 525`;
+      typeWriter(story, storyText, 22);
+      msg.style.display='none';
+      blocked=true; // บล็อคไม่ให้ใส่ซ้ำ
+    },1000);
+  } else {
+    msg.textContent="รหัสไม่ถูกต้อง"; msg.style.color="var(--error)";
+    failBeep();
+    input.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:260,iterations:1});
+  }
+}
+
+tryBtn.addEventListener('click', tryPass);
+input.addEventListener('keydown', e=>{if(e.key==='Enter')tryPass();});
+input.addEventListener('focus',()=>beep(600,0.04,0.05,"sine"));
+</script>
+
+</body>
+</html>
